@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Avalon - Padrão de Correção</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0,255,136,0.3);
+        }
+
+        .avalon-logo {
+            font-size: 1.2rem;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,255,136,0.2);
+        }
+
+        .control-title {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        select, input, button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        button {
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,255,136,0.3);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            color: #00ff88;
+        }
+
+        .status.disconnected {
+            color: #ff4444;
+        }
+
+        .pattern-detection {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,255,136,0.2);
+        }
+
+        .pattern-title {
+            color: #00ff88;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .pattern-item {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #00ff88;
+        }
+
+        .signal-card {
+            background: linear-gradient(145deg, rgba(255,0,0,0.1), rgba(255,0,0,0.05));
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #ff4444;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .signal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff4444, #ff6666, #ff4444);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .signal-type {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff4444;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .signal-strength {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .strength-high {
+            background: #ff4444;
+            color: white;
+        }
+
+        .entry-info {
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .entry-time {
+            font-size: 1.5rem;
+            color: #00ff88;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .pattern-analysis {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .candle-pattern {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .candle {
+            width: 20px;
+            height: 40px;
+            border-radius: 2px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .candle.green {
+            background: #00ff88;
+        }
+
+        .candle.red {
+            background: #ff4444;
+        }
+
+        .candle::before {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: currentColor;
+            top: -10px;
+        }
+
+        .candle::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: currentColor;
+            bottom: -10px;
+        }
+
+        .trend-indicator {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,68,68,0.1);
+            border-radius: 10px;
+            border: 1px solid #ff4444;
+        }
+
+        .chart-simulation {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,255,136,0.2);
+        }
+
+        .mini-chart {
+            height: 200px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .price-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #00ff88;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+
+        .disclaimer {
+            background: rgba(255,165,0,0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 1px solid #FFA500;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,255,136,0.3);
+            border-radius: 50%;
+            border-top-color: #00ff88;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .confluence-check {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .confluence-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .confluence-item.active {
+            background: rgba(0,255,136,0.2);
+            border: 1px solid #00ff88;
+        }
+
+        .multi-analysis {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,255,136,0.2);
+        }
+
+        .pair-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .pair-analysis-card {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #666;
+            transition: all 0.3s ease;
+        }
+
+        .pair-analysis-card.excellent {
+            border-left-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0,255,136,0.2);
+        }
+
+        .pair-analysis-card.good {
+            border-left-color: #ffaa00;
+            background: rgba(255,170,0,0.1);
+        }
+
+        .pair-analysis-card.poor {
+            border-left-color: #ff4444;
+            background: rgba(255,68,68,0.05);
+        }
+
+        .pair-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .pair-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .pair-score {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .score-excellent {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .score-good {
+            background: #ffaa00;
+            color: #000;
+        }
+
+        .score-poor {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .pair-details {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .confluence-mini {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .confluence-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .confluence-dot.active {
+            background: #00ff88;
+        }
+
+        .best-opportunities {
+            background: linear-gradient(145deg, rgba(0,255,136,0.2), rgba(0,255,136,0.1));
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #00ff88;
+        }
+
+        .opportunity-header {
+            text-align: center;
+            color: #00ff88;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Sistema Avalon - Padrão de Correção</h1>
+            <div class="avalon-logo">AVALON BROKER PATTERN DETECTION</div>
+            <p>Detecção de correção + travamento para sinais de VENDA</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-panel">
+                <div class="control-title">📊 Configurações do Par</div>
+                <select id="symbol">
+                    <option value="AUD/CHF" selected>🇦🇺🇨🇭 AUD/CHF</option>
+                    <option value="EUR/USD">🇪🇺🇺🇸 EUR/USD</option>
+                    <option value="GBP/JPY">🇬🇧🇯🇵 GBP/JPY</option>
+                    <option value="AUD/CAD">🇦🇺🇨🇦 AUD/CAD</option>
+                    <option value="EUR/JPY">🇪🇺🇯🇵 EUR/JPY</option>
+                    <option value="GBP/USD">🇬🇧🇺🇸 GBP/USD</option>
+                    <option value="USD/JPY">🇺🇸🇯🇵 USD/JPY</option>
+                    <option value="AUD/USD">🇦🇺🇺🇸 AUD/USD</option>
+                    <option value="USD/CAD">🇺🇸🇨🇦 USD/CAD</option>
+                    <option value="EUR/GBP">🇪🇺🇬🇧 EUR/GBP</option>
+                    <option value="CAD/JPY">🇨🇦🇯🇵 CAD/JPY</option>
+                    <option value="CHF/JPY">🇨🇭🇯🇵 CHF/JPY</option>
+                    <option value="NZD/USD">🇳🇿🇺🇸 NZD/USD</option>
+                    <option value="AUD/JPY">🇦🇺🇯🇵 AUD/JPY</option>
+                    <option value="GBP/CAD">🇬🇧🇨🇦 GBP/CAD</option>
+                    <option value="EUR/CAD">🇪🇺🇨🇦 EUR/CAD</option>
+                    <option value="GBP/CHF">🇬🇧🇨🇭 GBP/CHF</option>
+                    <option value="USD/CHF">🇺🇸🇨🇭 USD/CHF</option>
+                    <option value="NZD/JPY">🇳🇿🇯🇵 NZD/JPY</option>
+                    <option value="CAD/CHF">🇨🇦🇨🇭 CAD/CHF</option>
+                    <option value="EUR/CHF">🇪🇺🇨🇭 EUR/CHF</option>
+                    <option value="AUD/NZD">🇦🇺🇳🇿 AUD/NZD</option>
+                    <option value="GBP/NZD">🇬🇧🇳🇿 GBP/NZD</option>
+                    <option value="EUR/NZD">🇪🇺🇳🇿 EUR/NZD</option>
+                    <option value="USD/NOK">🇺🇸🇳🇴 USD/NOK</option>
+                    <option value="USD/SEK">🇺🇸🇸🇪 USD/SEK</option>
+                    <option value="EUR/NOK">🇪🇺🇳🇴 EUR/NOK</option>
+                    <option value="EUR/SEK">🇪🇺🇸🇪 EUR/SEK</option>
+                    <option value="GBP/AUD">🇬🇧🇦🇺 GBP/AUD</option>
+                    <option value="CHF/NOK">🇨🇭🇳🇴 CHF/NOK</option>
+                </select>
+                <select id="timeframe">
+                    <option value="5m" selected>⏰ 5 Minutos</option>
+                    <option value="15m">15 Minutos</option>
+                </select>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-title">🔧 Parâmetros do Padrão</div>
+                <input type="number" id="emaPeriod" value="20" min="10" max="50" placeholder="Período EMA">
+                <input type="number" id="correctionBars" value="3" min="2" max="5" placeholder="Velas de Correção">
+            </div>
+
+            <div class="control-panel">
+                <div class="control-title">⚙️ Controle do Sistema</div>
+                <button id="startBtn" onclick="toggleSystem()">Iniciar Scanner Multi-Ativo</button>
+                <button onclick="clearSignals()">Limpar Sinais</button>
+            </div>
+        </div>
+
+        <div class="status" id="status">Sistema Desconectado</div>
+
+        <div class="pattern-detection">
+            <div class="pattern-title">🔍 Análise Multi-Ativo em Tempo Real (30 Pares)</div>
+            <div class="pattern-grid">
+                <div class="pattern-item">
+                    <strong>Pares Analisados:</strong>
+                    <span id="analyzedPairs">0/30</span>
+                </div>
+                <div class="pattern-item">
+                    <strong>Oportunidades Ativas:</strong>
+                    <span id="activeOpportunities">0</span>
+                </div>
+                <div class="pattern-item">
+                    <strong>Sinais de Alta Força:</strong>
+                    <span id="highStrengthSignals">0</span>
+                </div>
+                <div class="pattern-item">
+                    <strong>Última Atualização:</strong>
+                    <span id="lastUpdate">Aguardando...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="multi-analysis" id="multiAnalysis" style="display: none;">
+            <h3 style="color: #00ff88; text-align: center; margin-bottom: 20px;">📊 ANÁLISE COMPLETA - TODOS OS ATIVOS</h3>
+            <div id="pairAnalysisGrid" class="pair-analysis-grid">
+                <!-- Análises dos pares aparecerão aqui -->
+            </div>
+        </div>
+
+        <div id="signalsContainer">
+            <!-- Sinais aparecerão aqui -->
+        </div>
+
+        <div class="chart-simulation">
+            <h3>📈 Scanner Multi-Ativo - <span id="currentPair">30 Pares Simultâneos</span></h3>
+            <div class="mini-chart" id="miniChart">
+                <div class="price-line"></div>
+                <span style="color: rgba(255,255,255,0.7);">Escaneando 30 pares em busca de padrões...</span>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <strong>⚠️ SISTEMA AVALON - SCANNER MULTI-ATIVO:</strong>
+            <p>• 🔍 <strong>Analisa 30 pares simultaneamente</strong> em busca do padrão de correção + travamento</p>
+            <p>• 📊 <strong>Ranking em tempo real</strong> dos melhores ativos para operar</p>
+            <p>• 🎯 <strong>Sinais automáticos</strong> apenas para pares com 4/4 confluências</p>
+            <p>• ⏰ <strong>Entradas em horários redondos:</strong> 05, 10, 15, 20, 25, 30...</p>
+            <p>• 🚨 <strong>Melhores oportunidades destacadas</strong> em verde para fácil identificação</p>
+            <p>• ⚠️ Sistema demonstrativo baseado no padrão da Avalon Broker</p>
+        </div>
+    </div>
+
+    <script>
+        // Configurações de preços iniciais para cada par
+        const pairPrices = {
+            'AUD/CHF': 0.52980,
+            'EUR/USD': 1.18450,
+            'GBP/JPY': 185.420,
+            'AUD/CAD': 0.89750,
+            'EUR/JPY': 156.320,
+            'GBP/USD': 1.35680,
+            'USD/JPY': 148.750,
+            'AUD/USD': 0.74520,
+            'USD/CAD': 1.32850,
+            'EUR/GBP': 0.88120,
+            'CAD/JPY': 111.250,
+            'CHF/JPY': 168.920,
+            'NZD/USD': 0.69850,
+            'AUD/JPY': 110.840,
+            'GBP/CAD': 1.80520,
+            'EUR/CAD': 1.57860,
+            'GBP/CHF': 1.17920,
+            'USD/CHF': 0.86540,
+            'NZD/JPY': 103.920,
+            'CAD/CHF': 0.65280,
+            'EUR/CHF': 1.02560,
+            'AUD/NZD': 1.06740,
+            'GBP/NZD': 1.94280,
+            'EUR/NZD': 1.69520,
+            'USD/NOK': 10.8520,
+            'USD/SEK': 10.4250,
+            'EUR/NOK': 12.8540,
+            'EUR/SEK': 12.3450,
+            'GBP/AUD': 1.82140,
+            'CHF/NOK': 12.5380
+        };
+
+        let isSystemActive = false;
+        let allPairsData = {}; // Dados de todos os pares
+        let signalId = 0;
+
+        // Configurações do sistema
+        const config = {
+            emaPeriod: 20,
+            correctionBars: 3,
+            symbol: 'AUD/CHF'
+        };
+
+        // Inicializa dados para todos os pares
+        function initializeAllPairs() {
+            Object.keys(pairPrices).forEach(pair => {
+                allPairsData[pair] = {
+                    candleHistory: [],
+                    currentPrice: pairPrices[pair],
+                    lastSignal: null
+                };
+                
+                // Gera histórico inicial para cada par
+                for (let i = 0; i < 50; i++) {
+                    generateCandleForPair(pair);
+                }
+            });
+        }
+
+        // Gera nova vela para um par específico
+        function generateCandleForPair(pair) {
+            const pairData = allPairsData[pair];
+            let volatility = 0.0005;
+            
+            // Ajusta volatilidade baseada no par
+            if (pair.includes('JPY')) {
+                volatility = 0.05;
+            } else if (pair.includes('NOK') || pair.includes('SEK')) {
+                volatility = 0.02;
+            } else if (pair === 'EUR/USD' || pair === 'GBP/USD') {
+                volatility = 0.0008;
+            }
+            
+            const trend = (Math.random() - 0.5) * volatility * 0.4;
+            const open = pairData.currentPrice;
+            const change = (Math.random() - 0.5) * volatility + trend;
+            const close = open + change;
+            
+            const high = Math.max(open, close) + Math.random() * volatility * 0.3;
+            const low = Math.min(open, close) - Math.random() * volatility * 0.3;
+            
+            pairData.currentPrice = Math.max(0.0001, close);
+            
+            // Formata preço baseado no par
+            if (pair.includes('JPY')) {
+                pairData.currentPrice = Number(pairData.currentPrice.toFixed(3));
+            } else {
+                pairData.currentPrice = Number(pairData.currentPrice.toFixed(5));
+            }
+            
+            const candle = createCandle(open, high, low, pairData.currentPrice);
+            pairData.candleHistory.push(candle);
+            
+            // Manter apenas as últimas 100 velas
+            if (pairData.candleHistory.length > 100) {
+                pairData.candleHistory.shift();
+            }
+            
+            return candle;
+        }
+
+        // Analisa um par específico
+        function analyzePair(pair) {
+            const pairData = allPairsData[pair];
+            const candles = pairData.candleHistory;
+            
+            if (candles.length < config.emaPeriod) {
+                return { score: 0, confluences: { count: 0, details: {} } };
+            }
+            
+            const confluences = checkConfluences(candles);
+            const score = confluences.count;
+            
+            return {
+                pair: pair,
+                price: formatPriceForPair(pairData.currentPrice, pair),
+                score: score,
+                confluences: confluences,
+                status: score === 4 ? 'excellent' : score >= 2 ? 'good' : 'poor'
+            };
+        }
+
+        // Analisa todos os pares
+        function analyzeAllPairs() {
+            const analyses = [];
+            let opportunityCount = 0;
+            let highStrengthCount = 0;
+            
+            Object.keys(allPairsData).forEach(pair => {
+                // Gera nova vela para cada par
+                generateCandleForPair(pair);
+                
+                // Analisa o par
+                const analysis = analyzePair(pair);
+                analyses.push(analysis);
+                
+                if (analysis.score >= 2) opportunityCount++;
+                if (analysis.score === 4) highStrengthCount++;
+            });
+            
+            // Ordena por score (melhores primeiro)
+            analyses.sort((a, b) => b.score - a.score);
+            
+            updateMultiAnalysisUI(analyses, opportunityCount, highStrengthCount);
+            
+            // Gera sinais para os melhores pares
+            analyses.forEach(analysis => {
+                if (analysis.score === 4 && Math.random() < 0.3) {
+                    generateSignalForPair(analysis);
+                }
+            });
+            
+            return analyses;
+        }
+
+        // Gera sinal para um par específico
+        function generateSignalForPair(analysis) {
+            const now = new Date();
+            const currentMinute = now.getMinutes();
+            let nextRoundMinute = Math.ceil(currentMinute / 5) * 5;
+            let entryHour = now.getHours();
+            
+            if (nextRoundMinute >= 60) {
+                nextRoundMinute = 0;
+                entryHour++;
+            }
+            
+            const entryTime = new Date();
+            entryTime.setHours(entryHour);
+            entryTime.setMinutes(nextRoundMinute);
+            entryTime.setSeconds(0);
+            entryTime.setMilliseconds(0);
+            
+            const signal = {
+                id: ++signalId,
+                type: 'put',
+                strength: 'high',
+                pair: analysis.pair,
+                price: analysis.price,
+                entryTime: entryTime,
+                entryMinute: entryTime.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}),
+                confluences: analysis.confluences,
+                pattern: 'Correção + Travamento',
+                timestamp: new Date()
+            };
+            
+            addSignalToUI(signal);
+        }
+
+        // Atualiza interface da análise multi-ativo
+        function updateMultiAnalysisUI(analyses, opportunityCount, highStrengthCount) {
+            document.getElementById('analyzedPairs').textContent = `${analyses.length}/30`;
+            document.getElementById('activeOpportunities').textContent = opportunityCount;
+            document.getElementById('highStrengthSignals').textContent = highStrengthCount;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+            
+            const grid = document.getElementById('pairAnalysisGrid');
+            grid.innerHTML = '';
+            
+            // Mostra seção de análise
+            document.getElementById('multiAnalysis').style.display = 'block';
+            
+            // Cria seção para melhores oportunidades
+            const bestOportunities = analyses.filter(a => a.score === 4);
+            if (bestOportunities.length > 0) {
+                const bestDiv = document.createElement('div');
+                bestDiv.className = 'best-opportunities';
+                bestDiv.innerHTML = `
+                    <div class="opportunity-header">🎯 MELHORES OPORTUNIDADES (${bestOportunities.length})</div>
+                    ${bestOportunities.map(analysis => `
+                        <div style="display: inline-block; margin: 5px 10px; padding: 8px 12px; background: rgba(0,255,136,0.2); border-radius: 20px; font-weight: bold;">
+                            ${analysis.pair} - ${analysis.price} (4/4)
+                        </div>
+                    `).join('')}
+                `;
+                document.getElementById('signalsContainer').insertBefore(bestDiv, document.getElementById('signalsContainer').firstChild);
+            }
+            
+            // Cria cards para todos os pares
+            analyses.forEach(analysis => {
+                const card = document.createElement('div');
+                card.className = `pair-analysis-card ${analysis.status}`;
+                
+                const scoreClass = analysis.score === 4 ? 'score-excellent' : 
+                                  analysis.score >= 2 ? 'score-good' : 'score-poor';
+                
+                const scoreText = analysis.score === 4 ? 'EXCELENTE' : 
+                                 analysis.score >= 2 ? 'BOM' : 'FRACO';
+                
+                const confluencesDots = Array.from({length: 4}, (_, i) => 
+                    `<div class="confluence-dot ${i < analysis.score ? 'active' : ''}"></div>`
+                ).join('');
+                
+                card.innerHTML = `
+                    <div class="pair-header">
+                        <div class="pair-name">${analysis.pair}</div>
+                        <div class="pair-score ${scoreClass}">${scoreText}</div>
+                    </div>
+                    <div class="pair-details">
+                        <div>💰 Preço: ${analysis.price}</div>
+                        <div>📊 Confluências: ${analysis.score}/4</div>
+                        <div class="confluence-mini">
+                            ${confluencesDots}
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+        function createCandle(open, high, low, close) {
+            return {
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                isGreen: close > open,
+                isRed: close < open,
+                timestamp: new Date()
+            };
+        }
+
+        // Gera nova vela simulada
+        function generateCandle() {
+            const pair = config.symbol;
+            let volatility = 0.0005;
+            
+            // Ajusta volatilidade baseada no par
+            if (pair.includes('JPY')) {
+                volatility = 0.05; // Pares com JPY têm maior volatilidade
+            } else if (pair.includes('NOK') || pair.includes('SEK')) {
+                volatility = 0.02; // Pares nórdicos
+            } else if (pair === 'EUR/USD' || pair === 'GBP/USD') {
+                volatility = 0.0008; // Majors mais voláteis
+            }
+            
+            const trend = (Math.random() - 0.5) * volatility * 0.4;
+            
+            const open = currentPrice;
+            const change = (Math.random() - 0.5) * volatility + trend;
+            const close = open + change;
+            
+            const high = Math.max(open, close) + Math.random() * volatility * 0.3;
+            const low = Math.min(open, close) - Math.random() * volatility * 0.3;
+            
+            currentPrice = Math.max(0.0001, close); // Evita preços negativos
+            
+            // Formata preço baseado no par
+            if (pair.includes('JPY')) {
+                currentPrice = Number(currentPrice.toFixed(3));
+            } else {
+                currentPrice = Number(currentPrice.toFixed(5));
+            }
+            
+            const candle = createCandle(open, high, low, currentPrice);
+            candleHistory.push(candle);
+            
+            // Manter apenas as últimas 100 velas
+            if (candleHistory.length > 100) {
+                candleHistory.shift();
+            }
+            
+            return candle;
+        }
+
+        // Calcula EMA
+        function calculateEMA(candles, period) {
+            if (candles.length < period) return null;
+            
+            const closes = candles.map(c => c.close);
+            const multiplier = 2 / (period + 1);
+            let ema = closes[0];
+            
+            for (let i = 1; i < closes.length; i++) {
+                ema = (closes[i] * multiplier) + (ema * (1 - multiplier));
+            }
+            
+            return ema;
+        }
+
+        // Detecta tendência de baixa
+        function isDowntrend(candles, lookback = 10) {
+            if (candles.length < lookback) return false;
+            
+            const recent = candles.slice(-lookback);
+            const highs = recent.map(c => c.high);
+            const lows = recent.map(c => c.low);
+            
+            // Verifica se os topos e fundos estão descendo
+            const topsDescending = highs[highs.length-1] < highs[0];
+            const bottomsDescending = lows[lows.length-1] < lows[0];
+            
+            return topsDescending && bottomsDescending;
+        }
+
+        // Detecta padrão de correção
+        function detectCorrectionPattern(candles) {
+            if (candles.length < config.correctionBars + 2) return false;
+            
+            const recent = candles.slice(-(config.correctionBars + 2));
+            
+            // Deve ter pelo menos uma sequência de velas verdes (correção para cima)
+            let correctionBars = 0;
+            for (let i = recent.length - config.correctionBars - 1; i < recent.length - 2; i++) {
+                if (recent[i].isGreen) {
+                    correctionBars++;
+                }
+            }
+            
+            return correctionBars >= 2; // Pelo menos 2 velas verdes de correção
+        }
+
+        // Detecta travamento (vela verde seguida de vela vermelha)
+        function detectLockPattern(candles) {
+            if (candles.length < 2) return false;
+            
+            const lastCandle = candles[candles.length - 1];
+            const secondLastCandle = candles[candles.length - 2];
+            
+            // Travamento: vela verde seguida de vela vermelha
+            return secondLastCandle.isGreen && lastCandle.isRed;
+        }
+
+        // Verifica todas as confluências
+        function checkConfluences(candles) {
+            if (candles.length < config.emaPeriod) return { count: 0, details: {} };
+            
+            const ema = calculateEMA(candles, config.emaPeriod);
+            const lastCandle = candles[candles.length - 1];
+            
+            const confluences = {
+                downtrend: isDowntrend(candles),
+                belowEMA: lastCandle.close < ema,
+                correction: detectCorrectionPattern(candles),
+                lock: detectLockPattern(candles)
+            };
+            
+            const count = Object.values(confluences).filter(Boolean).length;
+            
+            return { count, details: confluences, ema };
+        }
+
+        // Gera sinal de venda
+        function generateSellSignal() {
+            if (candleHistory.length < config.emaPeriod + 5) return null;
+            
+            const confluences = checkConfluences(candleHistory);
+            
+            // Só gera sinal se todas as 4 confluências estiverem presentes
+            if (confluences.count < 4) return null;
+            
+            const now = new Date();
+            const currentMinute = now.getMinutes();
+            const nextRoundMinute = Math.ceil(currentMinute / 5) * 5;
+            let entryHour = now.getHours();
+            
+            if (nextRoundMinute >= 60) {
+                nextRoundMinute = 0;
+                entryHour++;
+            }
+            
+            const entryTime = new Date();
+            entryTime.setHours(entryHour);
+            entryTime.setMinutes(nextRoundMinute);
+            entryTime.setSeconds(0);
+            entryTime.setMilliseconds(0);
+            
+            // Formata preço baseado no par
+            let formattedPrice;
+            if (config.symbol.includes('JPY')) {
+                formattedPrice = currentPrice.toFixed(3);
+            } else {
+                formattedPrice = currentPrice.toFixed(5);
+            }
+            
+            return {
+                id: ++signalId,
+                type: 'put',
+                strength: 'high',
+                price: formattedPrice,
+                entryTime: entryTime,
+                entryMinute: entryTime.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}),
+                confluences: confluences,
+                pattern: 'Correção + Travamento',
+                timestamp: new Date()
+            };
+        }
+
+        // Adiciona sinal à interface
+        function addSignalToUI(signal) {
+            const container = document.getElementById('signalsContainer');
+            const signalDiv = document.createElement('div');
+            signalDiv.className = 'signal-card';
+            
+            const expiryTime = new Date(signal.entryTime.getTime() + 5 * 60000);
+            const expiryMinute = expiryTime.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+            
+            const now = new Date();
+            const timeToEntry = Math.max(0, Math.floor((signal.entryTime - now) / 1000));
+            const minutesToEntry = Math.floor(timeToEntry / 60);
+            const secondsToEntry = timeToEntry % 60;
+            
+            signalDiv.innerHTML = `
+                <div class="signal-header">
+                    <div class="signal-type">📉 VENDA PUT - ${signal.pair}</div>
+                    <div class="signal-strength strength-high">ALTA CONFIANÇA</div>
+                </div>
+                
+                <div class="entry-info">
+                    <div class="entry-time">🕐 ENTRE ÀS ${signal.entryMinute}:00</div>
+                    <div style="text-align: center; color: #00ff88;">
+                        Expira às ${expiryMinute} | Duração: 5 minutos
+                    </div>
+                </div>
+                
+                <div class="candle-pattern">
+                    <div class="candle green" title="Correção"></div>
+                    <div class="candle green" title="Correção"></div>
+                    <div class="candle green" title="Última correção"></div>
+                    <div class="candle red" title="Travamento"></div>
+                    <span style="margin-left: 10px; color: #ff4444;">⬇️ VENDA</span>
+                </div>
+                
+                <div class="trend-indicator">
+                    <strong>🎯 PADRÃO DETECTADO:</strong> ${signal.pattern}<br>
+                    <span style="font-size: 14px;">Correção seguida de travamento em tendência de baixa</span>
+                </div>
+                
+                <div class="confluence-check">
+                    <div class="confluence-item ${signal.confluences.details.downtrend ? 'active' : 'inactive'}">
+                        <span>📉 Tendência Baixa</span>
+                        <span>${signal.confluences.details.downtrend ? '✅' : '❌'}</span>
+                    </div>
+                    <div class="confluence-item ${signal.confluences.details.belowEMA ? 'active' : 'inactive'}">
+                        <span>📊 Abaixo EMA</span>
+                        <span>${signal.confluences.details.belowEMA ? '✅' : '❌'}</span>
+                    </div>
+                    <div class="confluence-item ${signal.confluences.details.correction ? 'active' : 'inactive'}">
+                        <span>🔄 Correção</span>
+                        <span>${signal.confluences.details.correction ? '✅' : '❌'}</span>
+                    </div>
+                    <div class="confluence-item ${signal.confluences.details.lock ? 'active' : 'inactive'}">
+                        <span>🔒 Travamento</span>
+                        <span>${signal.confluences.details.lock ? '✅' : '❌'}</span>
+                    </div>
+                </div>
+                
+                <div class="pattern-analysis">
+                    <strong>💰 Preço Atual:</strong> ${signal.price}<br>
+                    <strong>📈 EMA(${config.emaPeriod}):</strong> ${formatPriceForPair(signal.confluences.ema, signal.pair)}<br>
+                    <strong>🎯 Par:</strong> ${signal.pair}<br>
+                    <strong>⚡ Confluências:</strong> ${signal.confluences.count}/4
+                </div>
+            `;
+
+            container.insertBefore(signalDiv, container.firstChild);
+
+            // Manter apenas os últimos 5 sinais
+            const signals = container.children;
+            while (signals.length > 6) { // +1 para a seção de melhores oportunidades
+                container.removeChild(signals[signals.length - 1]);
+            }
+        }
+
+        // Atualiza status na interface
+        function updateStatus() {
+            // Esta função agora é substituída pela análise multi-ativo
+        }
+
+        // Loop principal do sistema - Análise Multi-Ativo
+        function systemLoop() {
+            if (!isSystemActive) return;
+
+            // Analisa todos os 30 pares a cada ciclo
+            analyzeAllPairs();
+
+            setTimeout(systemLoop, 5000); // Atualiza a cada 5 segundos
+        }
+
+        // Formata preço baseado no par
+        function formatPriceForPair(price, pair) {
+            if (pair.includes('JPY')) {
+                return price.toFixed(3);
+            } else {
+                return price.toFixed(5);
+            }
+        }
+
+        // Controla o sistema
+        function toggleSystem() {
+            const btn = document.getElementById('startBtn');
+            const status = document.getElementById('status');
+
+            if (!isSystemActive) {
+                config.emaPeriod = parseInt(document.getElementById('emaPeriod').value);
+                config.correctionBars = parseInt(document.getElementById('correctionBars').value);
+                
+                // Inicializa todos os pares
+                initializeAllPairs();
+
+                isSystemActive = true;
+                btn.textContent = 'Parar Análise Multi-Ativo';
+                btn.style.background = 'linear-gradient(45deg, #ff4444, #cc3333)';
+                status.textContent = 'Sistema Ativo - Analisando 30 Pares...';
+                status.className = 'status connected';
+
+                systemLoop();
+            } else {
+                isSystemActive = false;
+                btn.textContent = 'Iniciar Análise Multi-Ativo';
+                btn.style.background = 'linear-gradient(45deg, #00ff88, #00cc6a)';
+                status.textContent = 'Sistema Desconectado';
+                status.className = 'status disconnected';
+                
+                // Oculta análise multi-ativo
+                document.getElementById('multiAnalysis').style.display = 'none';
+            }
+        }
+
+        // Limpar sinais
+        function clearSignals() {
+            document.getElementById('signalsContainer').innerHTML = '';
+        }
+
+        // Atualizar par atual no gráfico
+        document.getElementById('symbol').addEventListener('change', function() {
+            const selectedPair = this.value;
+            document.getElementById('currentPair').textContent = selectedPair;
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('currentPair').textContent = 'Multi-Ativo (30 Pares)';
+        });
+    </script>
+</body>
+</html>
