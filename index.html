@@ -354,9 +354,9 @@
 
         .pair-analysis-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 15px;
-            max-height: 600px;
+            max-height: 800px;
             overflow-y: auto;
         }
 
@@ -484,7 +484,6 @@
                     <option value="AUD/CAD">🇦🇺🇨🇦 AUD/CAD</option>
                     <option value="EUR/JPY">🇪🇺🇯🇵 EUR/JPY</option>
                     <option value="GBP/USD">🇬🇧🇺🇸 GBP/USD</option>
-                    <option value="USD/JPY">🇺🇸🇯🇵 USD/JPY</option>
                     <option value="AUD/USD">🇦🇺🇺🇸 AUD/USD</option>
                     <option value="USD/CAD">🇺🇸🇨🇦 USD/CAD</option>
                     <option value="EUR/GBP">🇪🇺🇬🇧 EUR/GBP</option>
@@ -552,12 +551,15 @@
             </div>
             
             <div style="margin-top: 15px; padding: 10px; background: rgba(0,255,136,0.1); border-radius: 8px; border: 1px solid rgba(0,255,136,0.3);">
-                <div style="font-weight: bold; color: #00ff88; margin-bottom: 8px;">📊 LEGENDA DAS CONFLUÊNCIAS:</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 13px;">
+                <div style="font-weight: bold; color: #00ff88; margin-bottom: 8px;">📊 PADRÃO AVALON - TRAVAMENTO NO TOPO:</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; font-size: 13px;">
                     <div>📉 <strong>Tendência Baixa:</strong> Topos/fundos descendentes</div>
                     <div>📊 <strong>Abaixo EMA:</strong> Preço < Média Móvel 20</div>
-                    <div>🔄 <strong>Correção:</strong> Sequência de velas verdes</div>
-                    <div>🔒 <strong>Travamento:</strong> Vela verde → vermelha</div>
+                    <div>🔄 <strong>Correção:</strong> 2-4 velas verdes consecutivas</div>
+                    <div>🔒 <strong>Travamento Topo:</strong> Rejeição no topo + vela vermelha</div>
+                </div>
+                <div style="margin-top: 8px; padding: 8px; background: rgba(255,68,68,0.2); border-radius: 5px; font-size: 12px;">
+                    <strong>🚨 IMPORTANTE:</strong> Sinal só é gerado na vela SEGUINTE ao travamento, quando confirmada a continuação de venda
                 </div>
             </div>
         </div>
@@ -601,7 +603,6 @@
             'AUD/CAD': 0.89750,
             'EUR/JPY': 156.320,
             'GBP/USD': 1.35680,
-            'USD/JPY': 148.750,
             'AUD/USD': 0.74520,
             'USD/CAD': 1.32850,
             'EUR/GBP': 0.88120,
@@ -740,9 +741,9 @@
             
             updateMultiAnalysisUI(analyses, opportunityCount, highStrengthCount);
             
-            // Gera sinais para os melhores pares
+            // Gera sinais apenas para pares PRONTOS para entrada
             analyses.forEach(analysis => {
-                if (analysis.score === 4 && Math.random() < 0.3) {
+                if (analysis.score === 4 && analysis.confluences.readyForEntry && Math.random() < 0.4) {
                     generateSignalForPair(analysis);
                 }
             });
@@ -750,8 +751,11 @@
             return analyses;
         }
 
-        // Gera sinal para um par específico
+        // Gera sinal para um par específico (versão melhorada)
         function generateSignalForPair(analysis) {
+            // Só gera sinal se estiver PRONTO para entrada na próxima vela
+            if (!analysis.confluences.readyForEntry) return null;
+            
             const now = new Date();
             const currentMinute = now.getMinutes();
             let nextRoundMinute = Math.ceil(currentMinute / 5) * 5;
@@ -777,7 +781,8 @@
                 entryTime: entryTime,
                 entryMinute: entryTime.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}),
                 confluences: analysis.confluences,
-                pattern: 'Correção + Travamento',
+                pattern: 'Travamento no Topo + Continuação',
+                correctionBars: analysis.confluences.details.correctionBars,
                 timestamp: new Date()
             };
             
@@ -844,11 +849,15 @@
                             📊 ${analysis.confluences.details.belowEMA ? '✅' : '❌'} Abaixo EMA
                         </div>
                         <div style="color: ${analysis.confluences.details.correction ? '#00ff88' : '#ff4444'};">
-                            🔄 ${analysis.confluences.details.correction ? '✅' : '❌'} Correção
+                            🔄 ${analysis.confluences.details.correction ? '✅' : '❌'} Correção (${analysis.confluences.details.correctionBars || 0} velas)
                         </div>
-                        <div style="color: ${analysis.confluences.details.lock ? '#00ff88' : '#ff4444'};">
-                            🔒 ${analysis.confluences.details.lock ? '✅' : '❌'} Travamento
+                        <div style="color: ${analysis.confluences.details.topLock ? '#00ff88' : '#ff4444'};">
+                            🔒 ${analysis.confluences.details.topLock ? '✅' : '❌'} Travamento no Topo
                         </div>
+                        ${analysis.confluences.readyForEntry ? 
+                            '<div style="color: #00ff88; font-weight: bold; margin-top: 5px;">🚨 ✅ PRONTO PARA ENTRADA!</div>' : 
+                            '<div style="color: #ffaa00; margin-top: 5px;">⏳ Aguardando próxima vela...</div>'
+                        }
                     </div>
                 `;
                 
@@ -955,51 +964,133 @@
             return topsDescending && bottomsDescending;
         }
 
-        // Detecta padrão de correção
+        // Detecta padrão de correção mais preciso
         function detectCorrectionPattern(candles) {
-            if (candles.length < config.correctionBars + 2) return false;
+            if (candles.length < 5) return { detected: false, correctionBars: 0 };
             
-            const recent = candles.slice(-(config.correctionBars + 2));
-            
-            // Deve ter pelo menos uma sequência de velas verdes (correção para cima)
+            const recent = candles.slice(-5); // Últimas 5 velas
             let correctionBars = 0;
-            for (let i = recent.length - config.correctionBars - 1; i < recent.length - 2; i++) {
+            let correctionStarted = false;
+            
+            // Procura por sequência de 2-4 velas verdes consecutivas
+            for (let i = 0; i < recent.length - 2; i++) {
                 if (recent[i].isGreen) {
-                    correctionBars++;
+                    if (!correctionStarted) {
+                        correctionStarted = true;
+                        correctionBars = 1;
+                    } else if (recent[i-1] && recent[i-1].isGreen) {
+                        correctionBars++;
+                    }
+                } else {
+                    if (correctionStarted && correctionBars >= 2) {
+                        break; // Correção válida encontrada
+                    }
+                    correctionStarted = false;
+                    correctionBars = 0;
                 }
             }
             
-            return correctionBars >= 2; // Pelo menos 2 velas verdes de correção
+            return { 
+                detected: correctionBars >= 2 && correctionBars <= 4, 
+                correctionBars: correctionBars 
+            };
         }
 
-        // Detecta travamento (vela verde seguida de vela vermelha)
-        function detectLockPattern(candles) {
-            if (candles.length < 2) return false;
+        // Detecta travamento no TOPO (mais específico)
+        function detectTopLockPattern(candles) {
+            if (candles.length < 3) return { locked: false, details: {} };
             
             const lastCandle = candles[candles.length - 1];
             const secondLastCandle = candles[candles.length - 2];
+            const thirdLastCandle = candles[candles.length - 3];
             
-            // Travamento: vela verde seguida de vela vermelha
-            return secondLastCandle.isGreen && lastCandle.isRed;
+            // Verifica se houve travamento no topo:
+            // 1. Vela verde (correção)
+            // 2. Vela que testa o topo mas não consegue romper (pode ser verde ou vermelha)
+            // 3. Vela vermelha confirmando a rejeição
+            
+            const hasCorrection = secondLastCandle.isGreen;
+            const topRejection = lastCandle.high >= secondLastCandle.high && lastCandle.close < secondLastCandle.close;
+            const confirmationRed = lastCandle.isRed;
+            
+            // Verifica se as velas não estão muito grandes (volatilidade excessiva)
+            const avgBodySize = candles.slice(-5).reduce((sum, candle) => 
+                sum + Math.abs(candle.close - candle.open), 0) / 5;
+            const lastCandleBody = Math.abs(lastCandle.close - lastCandle.open);
+            const isVolatilityNormal = lastCandleBody <= avgBodySize * 2; // Não mais que 2x a média
+            
+            const isLocked = hasCorrection && topRejection && confirmationRed && isVolatilityNormal;
+            
+            return {
+                locked: isLocked,
+                details: {
+                    hasCorrection,
+                    topRejection,
+                    confirmationRed,
+                    isVolatilityNormal,
+                    avgBodySize: avgBodySize.toFixed(5),
+                    lastBodySize: lastCandleBody.toFixed(5)
+                }
+            };
         }
 
-        // Verifica todas as confluências
+        // Verifica se deve entrar na PRÓXIMA vela (análise de continuação)
+        function shouldEnterNextCandle(candles) {
+            if (candles.length < 4) return false;
+            
+            const lockPattern = detectTopLockPattern(candles);
+            const correctionPattern = detectCorrectionPattern(candles);
+            const lastCandle = candles[candles.length - 1];
+            
+            // Condições para entrada na próxima vela:
+            // 1. Houve travamento no topo
+            // 2. Última vela é vermelha (confirmação de venda)
+            // 3. Correção foi de 2-4 velas
+            // 4. Tendência ainda é de baixa
+            
+            return (
+                lockPattern.locked &&
+                lastCandle.isRed &&
+                correctionPattern.detected &&
+                correctionPattern.correctionBars >= 2 &&
+                correctionPattern.correctionBars <= 4
+            );
+        }
+
+        // Verifica todas as confluências (versão melhorada)
         function checkConfluences(candles) {
             if (candles.length < config.emaPeriod) return { count: 0, details: {} };
             
             const ema = calculateEMA(candles, config.emaPeriod);
             const lastCandle = candles[candles.length - 1];
+            const correctionPattern = detectCorrectionPattern(candles);
+            const lockPattern = detectTopLockPattern(candles);
+            const readyForEntry = shouldEnterNextCandle(candles);
             
             const confluences = {
                 downtrend: isDowntrend(candles),
                 belowEMA: lastCandle.close < ema,
-                correction: detectCorrectionPattern(candles),
-                lock: detectLockPattern(candles)
+                correction: correctionPattern.detected,
+                topLock: lockPattern.locked,
+                readyForEntry: readyForEntry,
+                correctionBars: correctionPattern.correctionBars,
+                lockDetails: lockPattern.details
             };
             
-            const count = Object.values(confluences).filter(Boolean).length;
+            // Conta confluências principais (4 originais)
+            const mainCount = [
+                confluences.downtrend,
+                confluences.belowEMA, 
+                confluences.correction,
+                confluences.topLock
+            ].filter(Boolean).length;
             
-            return { count, details: confluences, ema };
+            return { 
+                count: mainCount, 
+                details: confluences, 
+                ema,
+                readyForEntry: readyForEntry
+            };
         }
 
         // Gera sinal de venda
@@ -1076,16 +1167,20 @@
                 </div>
                 
                 <div class="candle-pattern">
-                    <div class="candle green" title="Correção"></div>
-                    <div class="candle green" title="Correção"></div>
-                    <div class="candle green" title="Última correção"></div>
-                    <div class="candle red" title="Travamento"></div>
-                    <span style="margin-left: 10px; color: #ff4444;">⬇️ VENDA</span>
+                    <div class="candle red" title="Tendência de baixa"></div>
+                    <div class="candle green" title="Correção 1"></div>
+                    <div class="candle green" title="Correção 2"></div>
+                    <div class="candle green" title="Teste do topo"></div>
+                    <div class="candle red" title="Travamento/Rejeição"></div>
+                    <span style="margin-left: 10px; color: #ff4444;">⬇️ PRÓXIMA VELA = VENDA</span>
                 </div>
                 
                 <div class="trend-indicator">
                     <strong>🎯 PADRÃO DETECTADO:</strong> ${signal.pattern}<br>
-                    <span style="font-size: 14px;">Correção seguida de travamento em tendência de baixa</span>
+                    <span style="font-size: 14px;">Correção de ${signal.correctionBars} velas + travamento no topo</span>
+                    <div style="margin-top: 8px; padding: 8px; background: rgba(0,255,136,0.2); border-radius: 5px; font-size: 12px;">
+                        <strong>📋 SEQUÊNCIA:</strong> Correção → Topo → Rejeição → <strong style="color: #ff4444;">ENTRADA VENDA</strong>
+                    </div>
                 </div>
                 
                 <div class="confluence-check">
@@ -1098,12 +1193,12 @@
                         <span>${signal.confluences.details.belowEMA ? '✅' : '❌'}</span>
                     </div>
                     <div class="confluence-item ${signal.confluences.details.correction ? 'active' : 'inactive'}">
-                        <span>🔄 Correção</span>
+                        <span>🔄 Correção (${signal.correctionBars})</span>
                         <span>${signal.confluences.details.correction ? '✅' : '❌'}</span>
                     </div>
-                    <div class="confluence-item ${signal.confluences.details.lock ? 'active' : 'inactive'}">
-                        <span>🔒 Travamento</span>
-                        <span>${signal.confluences.details.lock ? '✅' : '❌'}</span>
+                    <div class="confluence-item ${signal.confluences.details.topLock ? 'active' : 'inactive'}">
+                        <span>🔒 Travamento Topo</span>
+                        <span>${signal.confluences.details.topLock ? '✅' : '❌'}</span>
                     </div>
                 </div>
                 
